@@ -104,7 +104,7 @@ func ResetBranch(resetTarget string, remote string) {
 // construct a commit in the [changeType] (storyNumber): <description>
 // format, and push all the changes up with it. If there is no upstream
 // branch to push to, it will prompt the user and ask if it should create
-// one with the --set-upstream <remote> <branchName> dumb extra text
+// one with the --set-upstream <remote> <branchName> stuff
 func PushCommit(branchName string, changeType string, description string, remote string) {
 	if strings.Index(branchName, "/") == -1 {
 		fmt.Println("Required branch naming not preset, please name the branch with a feature/<storyCardNumber> syntax")
