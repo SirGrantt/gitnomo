@@ -104,7 +104,7 @@ func ResetBranch(resetTarget string, remote string) {
 // construct a commit in the [changeType] (storyNumber): <description>
 // format, and push all the changes up with it. If there is no upstream
 // branch to push to, it will prompt the user and ask if it should create
-// one with the --set-upstream <remote> <branchName>
+// one with the --set-upstream <remote> <branchName> dumb extra text
 func PushCommit(branchName string, changeType string, description string, remote string) {
 	if strings.Index(branchName, "/") == -1 {
 		fmt.Println("Required branch naming not preset, please name the branch with a feature/<storyCardNumber> syntax")
@@ -151,7 +151,8 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 		fmt.Println("Error trying to parse answer")
 		fmt.Println(err.Error())
 	}
-	responseString := string(response)
+	fmt.Println(string(response))
+	responseString := strings.TrimSuffix(string(response), "\n")
 	if !strings.EqualFold(responseString, "y") && !strings.EqualFold(responseString, "n") {
 		fmt.Println("I did not understand you, please answer y or n")
 		recursErr := handleBranchUpstream(branchName, remote, commitMessage)
@@ -159,6 +160,7 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 	}
 
 	if strings.EqualFold(responseString, "y") {
+		fmt.Println("hit the match to y")
 		cmd := exec.Command("git", "push", "--set-upstream", remote, branchName)
 		var errBuffer bytes.Buffer
 		cmd.Stderr = &errBuffer
@@ -182,9 +184,14 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 
 func createCommit(commitMessage string) error {
 	commitCmd := exec.Command("git", "commit", "-m", "\""+commitMessage+"\"")
-	var commitErrBuff bytes.Buffer
+	var commitOut, commitErrBuff bytes.Buffer
 	commitCmd.Stderr = &commitErrBuff
+	commitCmd.Stdout = &commitOut
 	err := commitCmd.Run()
+
+	if strings.Index(commitOut.String(), "nothing to commit") != -1 {
+		return nil
+	}
 
 	if err != nil {
 		fmt.Println("ERROR: error while trying to add the commit: ")
