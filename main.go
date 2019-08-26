@@ -1,49 +1,44 @@
 package main
 
 import (
-	"bytes"
-	//	"flag"
+	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/sirgrantt/gitnomo/utilities"
 )
 
 func main() {
-	//firstArg := flag.String("first", "", "the first value in the world")
-	// flag.Parse()
+	changeType := flag.String("changeType", "", "bug|patch|hotfix|minor|major|release|test")
+	allowedChangeTypes := []string{"bug", "patch", "hotfix", "minor", "major", "release", "test"}
+	description := flag.String("Description for commit", "", "The description that will show up in the commit history")
+	rebaseTarget := flag.String("rebaseTarget", "dev", "the target branch name to rebase against [default: dev]")
+	resetTarget := flag.String("resetTarget", "dev", "the branch to reset against [default: dev]")
+	remote := flag.String("remote", "origin", "the remote to use for the branches [default: origin]")
+	flag.Parse()
 
-	// if *firstArg == "" {
-	// 	fmt.Println("hey, give me a value")
-	// 	flag.PrintDefaults()
-	// 	os.Exit(1)
-	// }
-
-	// cmd := exec.Command("git", "branch | grep \\* | cut -d ' ' -f2")
-	// args := []string{"branch", "|", "grep", "\\*", "cut", "-d", "' '", "-f2"}
-	cmd := exec.Command("git", "branch")
-	//cmd.Stdin = strings.NewReader("branch | grep \\* | cut -d ' ' -f2")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-
-	result := strings.Split(out.String(), "\n")
-
-	var branchName string
-
-	for i, val := range result {
-		found := strings.Index(val, "*")
-		if found > -1 {
-			selectedBranch := result[i]
-			splitFromStar := strings.Split(selectedBranch, "*")
-			branchName = strings.TrimSpace(splitFromStar[1])
-		}
-	}
-
-	if err != nil {
-		fmt.Println("Error running command")
-		fmt.Println(err.Error())
+	if strings.TrimSpace(*changeType) == "" {
+		fmt.Println("ERROR: must provide a valid change type, see --help for options")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	fmt.Println(branchName)
+
+	if indx := utilities.StringSliceIndexOf(allowedChangeTypes, *changeType); indx == -1 {
+		fmt.Println("ERROR: Invalid commit change type, see --help for valid options")
+		os.Exit(1)
+	}
+
+	if strings.TrimSpace(*description) == "" {
+		fmt.Println(("ERROR: must provide a non empty description for the commit"))
+	}
+
+	// TODO: Run git add --all before the rest because git won't like
+	// performing the below actions with unstaged changes
+
+	branchName := utilities.GetBranchName()
+	utilities.RebaseBranch(*rebaseTarget, *remote)
+	utilities.ResetBranch(*resetTarget, *remote)
+	utilities.PushCommit(branchName, *changeType, *description, *remote)
+	fmt.Println(branchName, *changeType)
 }
