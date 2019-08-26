@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ import (
 // the valueToMatch is in it or not
 func StringSliceIndexOf(stringSlice []string, valueToMatch string) int {
 	for i, val := range stringSlice {
-		if val == valueToMatch {
+		if strings.EqualFold(val, valueToMatch) {
 			return i
 		}
 	}
@@ -49,20 +50,53 @@ func GetBranchName() string {
 	return branchName
 }
 
+// StageCurrentChanges stages the current changes in git
+func StageCurrentChanges() {
+	cmd := exec.Command("git", "add", "--all")
+	var outBuff, errBuff bytes.Buffer
+	cmd.Stdout = &outBuff
+	cmd.Stderr = &errBuff
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("ERROR: Error occurred while staging the current changes: ")
+		fmt.Println(errBuff.String())
+		os.Exit(1)
+	}
+}
+
 // RebaseBranch will rebase the current branch against the provided
 // target branch on the specified origin. Exits with status 1 if
 // the rebase fails and returns the message from git. If there
 // are conflicts the user will have to pick it up form here to resolve
 func RebaseBranch(rebaseTarget string, origin string) {
+	cmd := exec.Command("git", "rebase", origin, rebaseTarget)
+	var errBuff bytes.Buffer
+	cmd.Stderr = &errBuff
+	err := cmd.Run()
 
+	if err != nil {
+		fmt.Println("ERROR: error trying to rebase your branch, you may have conflicts: ")
+		fmt.Println(errBuff.String())
+		os.Exit(1)
+	}
 }
 
 // ResetBranch will reset the current target against the
 // target branch. It will call this after a rebase and will
 // soft reset in order to prepare the changes for a single
 // commit
-func ResetBranch(resetTarget string, origin string) {
+func ResetBranch(resetTarget string, remote string) {
+	cmd := exec.Command("git", "reset", remote, resetTarget)
+	var errBuff bytes.Buffer
+	cmd.Stderr = &errBuff
+	err := cmd.Run()
 
+	if err != nil {
+		fmt.Println("ERROR: error while trying to reset your branch: ")
+		fmt.Println(errBuff.String())
+		os.Exit(1)
+	}
 }
 
 // PushCommit will use the branch name to determine the story number,
@@ -71,5 +105,74 @@ func ResetBranch(resetTarget string, origin string) {
 // branch to push to, it will prompt the user and ask if it should create
 // one with the --set-upstream <remote> <branchName>
 func PushCommit(branchName string, changeType string, description string, remote string) {
+	branchParts := strings.Split(branchName, "/")
+	storyNumber := branchParts[1]
+	commitMessage := "[" + strings.ToLower(changeType) + "] " + "(" + storyNumber + "): " + description
+	commitCmd := exec.Command("git", "commit", "-m"+commitMessage)
+	var commitErrBuff, pushBuff bytes.Buffer
+	commitCmd.Stderr = &commitErrBuff
+	err := commitCmd.Run()
 
+	if err != nil {
+		fmt.Println("ERROR: error while trying to add the commit: ")
+		fmt.Println(commitErrBuff.String())
+		os.Exit(1)
+	}
+
+	pushCmd := exec.Command("git", "push")
+	pushCmd.Stderr = &pushBuff
+	pushErr := pushCmd.Run()
+
+	if pushErr != nil {
+		errMsg := string(pushBuff.String())
+		if strings.Index(errMsg, "upstream") != -1 {
+			handleBranchUpstream(branchName, remote, commitMessage)
+		}
+
+		fmt.Println("ERROR: error while trying to push your commit")
+		fmt.Println(errMsg)
+		os.Exit(1)
+	}
+
+	fmt.Println("Succesfully pushed your commit with the message: " + commitMessage)
+	fmt.Println("exiting..")
+	os.Exit(0)
+
+}
+
+func handleBranchUpstream(branchName string, remote string, commitMessage string) error {
+	inputBuf := bufio.NewReader(os.Stdin)
+	fmt.Println("no upstream for branch " + branchName + " on remote " + remote + ", create one? y/n")
+	response, err := inputBuf.ReadBytes('\n')
+	if err != nil {
+		fmt.Println("Error trying to parse answer")
+		fmt.Println(err.Error())
+	}
+	responseString := string(response)
+	if !strings.EqualFold(responseString, "y") && !strings.EqualFold(responseString, "n") {
+		fmt.Println("I did not understand you, please answer y or n")
+		recursErr := handleBranchUpstream(branchName, remote, commitMessage)
+		return recursErr
+	}
+
+	if strings.EqualFold(responseString, "y") {
+		cmd := exec.Command("git", "push", "--set-upstream", remote, branchName)
+		var errBuffer bytes.Buffer
+		cmd.Stderr = &errBuffer
+		err := cmd.Run()
+
+		if err != nil {
+			fmt.Println("ERROR: error while trying to push and set the upstream: ")
+			fmt.Println(errBuffer.String())
+			os.Exit(1)
+		}
+
+		fmt.Println("Success, the commit was pushed with the message: " + commitMessage)
+		os.Exit(0)
+	} else {
+		fmt.Println("Cannot push the branch without an upstream set, exiting..")
+		os.Exit(1)
+	}
+
+	return nil
 }
