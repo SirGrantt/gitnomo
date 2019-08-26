@@ -59,3 +59,5 @@ func main() {
 	utilities.PushCommit(branchName, *changeType, *description, *remote)
 	fmt.Println(branchName, *changeType)
 }
+
+// test text
