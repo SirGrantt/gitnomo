@@ -11,8 +11,13 @@
       "mode": "auto",
       "program": "${fileDirname}",
       "env": {},
-      "args": [],
-      "showLog": true,
+      "args": [
+        "--changeType=minor",
+        "--description=fix",
+        "--rebaseTarget=master",
+        "--resetTarget=master"
+      ],
+      "showLog": true
     }
   ]
 }

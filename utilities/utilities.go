@@ -1,7 +1,6 @@
 package utilities
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -104,7 +103,7 @@ func ResetBranch(resetTarget string, remote string) {
 // construct a commit in the [changeType] (storyNumber): <description>
 // format, and push all the changes up with it. If there is no upstream
 // branch to push to, it will prompt the user and ask if it should create
-// one with the --set-upstream <remote> <branchName>
+// one with the --set-upstream <remote> <branchName> dumb extra text
 func PushCommit(branchName string, changeType string, description string, remote string) {
 	if strings.Index(branchName, "/") == -1 {
 		fmt.Println("Required branch naming not preset, please name the branch with a feature/<storyCardNumber> syntax")
@@ -144,14 +143,15 @@ func PushCommit(branchName string, changeType string, description string, remote
 }
 
 func handleBranchUpstream(branchName string, remote string, commitMessage string) error {
-	inputBuf := bufio.NewReader(os.Stdin)
+	//inputBuf := bufio.NewReader(os.Stdin)
 	fmt.Println("no upstream for branch " + branchName + " on remote " + remote + ", create one? y/n")
-	response, err := inputBuf.ReadBytes('\n')
-	if err != nil {
-		fmt.Println("Error trying to parse answer")
-		fmt.Println(err.Error())
-	}
-	responseString := string(response)
+	// response, err := inputBuf.ReadBytes('\\')
+	// if err != nil {
+	// 	fmt.Println("Error trying to parse answer")
+	// 	fmt.Println(err.Error())
+	// }
+	// responseStrings := strings.Split(string(response), "\\")
+	responseString := "y" //responseStrings[0]
 	if !strings.EqualFold(responseString, "y") && !strings.EqualFold(responseString, "n") {
 		fmt.Println("I did not understand you, please answer y or n")
 		recursErr := handleBranchUpstream(branchName, remote, commitMessage)
@@ -182,9 +182,14 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 
 func createCommit(commitMessage string) error {
 	commitCmd := exec.Command("git", "commit", "-m", "\""+commitMessage+"\"")
-	var commitErrBuff bytes.Buffer
+	var commitOut, commitErrBuff bytes.Buffer
 	commitCmd.Stderr = &commitErrBuff
+	commitCmd.Stdout = &commitOut
 	err := commitCmd.Run()
+
+	if strings.Index(commitOut.String(), "nothing to commit") != -1 {
+		return nil
+	}
 
 	if err != nil {
 		fmt.Println("ERROR: error while trying to add the commit: ")
