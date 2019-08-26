@@ -181,7 +181,7 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 }
 
 func createCommit(commitMessage string) error {
-	commitCmd := exec.Command("git", "commit", "-m", "\""+commitMessage+"\"")
+	commitCmd := exec.Command("git", "commit", "-m", commitMessage)
 	var commitOut, commitErrBuff bytes.Buffer
 	commitCmd.Stderr = &commitErrBuff
 	commitCmd.Stdout = &commitOut
