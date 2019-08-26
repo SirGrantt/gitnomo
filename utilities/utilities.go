@@ -69,8 +69,9 @@ func StageCurrentChanges() {
 // target branch on the specified origin. Exits with status 1 if
 // the rebase fails and returns the message from git. If there
 // are conflicts the user will have to pick it up form here to resolve
-func RebaseBranch(rebaseTarget string, origin string) {
-	cmd := exec.Command("git", "rebase", origin, rebaseTarget)
+func RebaseBranch(rebaseTarget string, remote string) {
+	createCommit("tempCommit")
+	cmd := exec.Command("git", "rebase", remote+"/"+rebaseTarget)
 	var errBuff bytes.Buffer
 	cmd.Stderr = &errBuff
 	err := cmd.Run()
@@ -87,7 +88,7 @@ func RebaseBranch(rebaseTarget string, origin string) {
 // soft reset in order to prepare the changes for a single
 // commit
 func ResetBranch(resetTarget string, remote string) {
-	cmd := exec.Command("git", "reset", remote, resetTarget)
+	cmd := exec.Command("git", "reset", remote+"/"+resetTarget)
 	var errBuff bytes.Buffer
 	cmd.Stderr = &errBuff
 	err := cmd.Run()
@@ -105,17 +106,19 @@ func ResetBranch(resetTarget string, remote string) {
 // branch to push to, it will prompt the user and ask if it should create
 // one with the --set-upstream <remote> <branchName>
 func PushCommit(branchName string, changeType string, description string, remote string) {
+	if strings.Index(branchName, "/") == -1 {
+		fmt.Println("Required branch naming not preset, please name the branch with a feature/<storyCardNumber> syntax")
+		os.Exit(1)
+	}
 	branchParts := strings.Split(branchName, "/")
 	storyNumber := branchParts[1]
 	commitMessage := "[" + strings.ToLower(changeType) + "] " + "(" + storyNumber + "): " + description
-	commitCmd := exec.Command("git", "commit", "-m"+commitMessage)
-	var commitErrBuff, pushBuff bytes.Buffer
-	commitCmd.Stderr = &commitErrBuff
-	err := commitCmd.Run()
+	var pushBuff bytes.Buffer
+
+	err := createCommit(commitMessage)
 
 	if err != nil {
 		fmt.Println("ERROR: error while trying to add the commit: ")
-		fmt.Println(commitErrBuff.String())
 		os.Exit(1)
 	}
 
@@ -171,6 +174,21 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 		os.Exit(0)
 	} else {
 		fmt.Println("Cannot push the branch without an upstream set, exiting..")
+		os.Exit(1)
+	}
+
+	return nil
+}
+
+func createCommit(commitMessage string) error {
+	commitCmd := exec.Command("git", "commit", "-m", "\""+commitMessage+"\"")
+	var commitErrBuff bytes.Buffer
+	commitCmd.Stderr = &commitErrBuff
+	err := commitCmd.Run()
+
+	if err != nil {
+		fmt.Println("ERROR: error while trying to add the commit: ")
+		fmt.Println(commitErrBuff.String())
 		os.Exit(1)
 	}
 
