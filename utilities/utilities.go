@@ -143,6 +143,20 @@ func PushCommit(branchName string, changeType string, description string, remote
 
 }
 
+// RunFetch will fetch the changes from the remote
+func RunFetch() {
+	cmd := exec.Command("git", "fetch")
+	var errBuff bytes.Buffer
+	cmd.Stderr = &errBuff
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("ERROR: error while trying to run fetch")
+		fmt.Println(errBuff.String())
+		os.Exit(1)
+	}
+}
+
 func handleBranchUpstream(branchName string, remote string, commitMessage string) error {
 	inputBuf := bufio.NewReader(os.Stdin)
 	fmt.Println("no upstream for branch " + branchName + " on remote " + remote + ", create one? y/n")

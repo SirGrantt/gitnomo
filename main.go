@@ -10,11 +10,11 @@ import (
 )
 
 func main() {
-	changeType := flag.String("changeType", "", "bug|patch|hotfix|minor|major|release|test")
+	changeType := flag.String("change", "", "bug|patch|hotfix|minor|major|release|test")
 	allowedChangeTypes := []string{"bug", "patch", "hotfix", "minor", "major", "release", "test"}
 	description := flag.String("description", "", "The description that will show up in the commit history")
-	rebaseTarget := flag.String("rebaseTarget", "dev", "the target branch name to rebase against [default: dev]")
-	resetTarget := flag.String("resetTarget", "dev", "the branch to reset against [default: dev]")
+	rebaseTarget := flag.String("rebase", "dev", "the target branch name to rebase against [default: dev]")
+	resetTarget := flag.String("reset", "dev", "the branch to reset against [default: dev]")
 	remote := flag.String("remote", "origin", "the remote to use for the branches [default: origin]")
 	flag.Parse()
 
@@ -49,13 +49,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: Run git add --all before the rest because git won't like
-	// performing the below actions with unstaged changes
+	// TODO: RUN FETCH
+	utilities.RunFetch()
 	utilities.StageCurrentChanges()
 	branchName := utilities.GetBranchName()
 	utilities.RebaseBranch(*rebaseTarget, *remote)
 	utilities.ResetBranch(*resetTarget, *remote)
 	utilities.StageCurrentChanges()
 	utilities.PushCommit(branchName, *changeType, *description, *remote)
-	fmt.Println(branchName, *changeType)
 }
