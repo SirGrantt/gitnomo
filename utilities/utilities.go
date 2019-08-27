@@ -125,7 +125,7 @@ func PushCommit(branchName string, changeType string, description string, remote
 		fmt.Println("ERROR: error while trying to add the commit: ")
 		os.Exit(1)
 	}
-	fmt.Println("pushing you commit with message: " + commitMessage)
+	fmt.Println("pushing your commit with message: " + commitMessage)
 	pushCmd := exec.Command("git", "push", "--force")
 	pushCmd.Stderr = &pushBuff
 	pushErr := pushCmd.Run()
@@ -176,7 +176,6 @@ func handleBranchUpstream(branchName string, remote string, commitMessage string
 	}
 
 	if strings.EqualFold(responseString, "y") {
-		fmt.Println("hit the match to y")
 		cmd := exec.Command("git", "push", "--set-upstream", remote, branchName)
 		var errBuffer bytes.Buffer
 		cmd.Stderr = &errBuffer
