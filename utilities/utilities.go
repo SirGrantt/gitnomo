@@ -52,6 +52,7 @@ func GetBranchName() string {
 
 // StageCurrentChanges stages the current changes in git
 func StageCurrentChanges() {
+	fmt.Println("staging current changes...")
 	cmd := exec.Command("git", "add", "--all")
 	var outBuff, errBuff bytes.Buffer
 	cmd.Stdout = &outBuff
@@ -70,6 +71,7 @@ func StageCurrentChanges() {
 // the rebase fails and returns the message from git. If there
 // are conflicts the user will have to pick it up form here to resolve
 func RebaseBranch(rebaseTarget string, remote string) {
+	fmt.Println("rebasing your current branch on " + remote + "/" + rebaseTarget)
 	createCommit("tempCommit")
 	cmd := exec.Command("git", "rebase", remote+"/"+rebaseTarget)
 	var errBuff bytes.Buffer
@@ -88,6 +90,7 @@ func RebaseBranch(rebaseTarget string, remote string) {
 // soft reset in order to prepare the changes for a single
 // commit
 func ResetBranch(resetTarget string, remote string) {
+	fmt.Println("resetting branch against " + remote + "/" + resetTarget)
 	cmd := exec.Command("git", "reset", remote+"/"+resetTarget)
 	var errBuff bytes.Buffer
 	cmd.Stderr = &errBuff
@@ -106,6 +109,7 @@ func ResetBranch(resetTarget string, remote string) {
 // branch to push to, it will prompt the user and ask if it should create
 // one with the --set-upstream <remote> <branchName>
 func PushCommit(branchName string, changeType string, description string, remote string) {
+	fmt.Println("preparing to push commit....")
 	if strings.Index(branchName, "/") == -1 {
 		fmt.Println("Required branch naming not preset, please name the branch with a feature/<storyCardNumber> syntax")
 		os.Exit(1)
@@ -121,7 +125,7 @@ func PushCommit(branchName string, changeType string, description string, remote
 		fmt.Println("ERROR: error while trying to add the commit: ")
 		os.Exit(1)
 	}
-
+	fmt.Println("pushing you commit with message: " + commitMessage)
 	pushCmd := exec.Command("git", "push", "--force")
 	pushCmd.Stderr = &pushBuff
 	pushErr := pushCmd.Run()
